@@ -7,7 +7,10 @@ import (
 )
 
 func TestAddBlock(t *testing.T) {
-	c := NewBlockChain()
+	c, err := NewBlockChain()
+	if err != nil {
+		t.Fatal(err)
+	}
 	c.AddBlock(NewBlock("A block"))
 	c.AddBlock(NewBlock("B block"))
 	c.AddBlock(NewBlock("C block"))

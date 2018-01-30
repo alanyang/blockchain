@@ -40,9 +40,19 @@ func (p *ProofOfWork) run() (uint64, []byte) {
 
 		if hashInt.Cmp(p.target) == -1 {
 			return nonce, hash[:]
-		} else {
-			// fmt.Printf("%X - %d\n", hash, nonce)
 		}
 		nonce++
 	}
+}
+
+func (p *ProofOfWork) IsValid() bool {
+	var (
+		hashInt      big.Int
+		givenHashInt big.Int
+	)
+	hash := sha256.Sum256(p.prepare(p.b.Nonce))
+	hashInt.SetBytes(hash[:])
+	givenHashInt.SetBytes(p.b.Hash)
+
+	return givenHashInt.Cmp(&hashInt) == 0
 }
