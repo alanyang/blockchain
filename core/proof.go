@@ -9,6 +9,7 @@ import (
 
 const targetBits = 12
 
+//ProofOfWork ...
 type ProofOfWork struct {
 	b      *Block
 	target *big.Int

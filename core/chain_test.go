@@ -11,9 +11,9 @@ func TestAddBlock(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	c.AddBlock(NewBlock("A block"))
-	c.AddBlock(NewBlock("B block"))
-	c.AddBlock(NewBlock("C block"))
-	c.AddBlock(NewBlock("D block"))
+	// c.AddBlock(NewBlock("A block"))
+	// c.AddBlock(NewBlock("B block"))
+	// c.AddBlock(NewBlock("C block"))
+	// c.AddBlock(NewBlock("D block"))
 	t.Log(c.String())
 }

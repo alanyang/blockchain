@@ -1,0 +1,59 @@
+=============== Jan 31, 2018 (CST) ===============
+18:15:31.123449 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+18:15:31.124359 db@open opening
+18:15:31.125082 version@stat F·[] S·0B[] Sc·[]
+18:15:31.125427 db@janitor F·2 G·0
+18:15:31.125473 db@open done T·1.079427ms
+18:15:31.126229 db@close closing
+18:15:31.126460 db@close done T·226.431µs
+=============== Jan 31, 2018 (CST) ===============
+18:15:42.273339 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+18:15:42.273812 version@stat F·[] S·0B[] Sc·[]
+18:15:42.273848 db@open opening
+18:15:42.273924 journal@recovery F·1
+18:15:42.274485 journal@recovery recovering @1
+18:15:42.275183 memdb@flush created L0@2 N·4 S·405B "\x00\t\x83..a\xf3\x87,v3":"amy..ain,v2"
+18:15:42.275747 version@stat F·[1] S·405B[405B] Sc·[0.25]
+18:15:42.276720 db@janitor F·3 G·0
+18:15:42.276763 db@open done T·2.89409ms
+18:15:42.286045 db@close closing
+18:15:42.286414 db@close done T·364.795µs
+=============== Jan 31, 2018 (CST) ===============
+18:15:47.473894 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+18:15:47.474325 version@stat F·[1] S·405B[405B] Sc·[0.25]
+18:15:47.474370 db@open opening
+18:15:47.474452 journal@recovery F·1
+18:15:47.474969 journal@recovery recovering @3
+18:15:47.475733 memdb@flush created L0@5 N·2 S·355B "\x00\x0fR..\xbbʋ,v6":"amy..ain,v7"
+18:15:47.476284 version@stat F·[2] S·760B[760B] Sc·[0.50]
+18:15:47.477322 db@janitor F·4 G·0
+18:15:47.477365 db@open done T·2.973497ms
+18:15:47.478827 db@close closing
+18:15:47.479242 db@close done T·410.616µs
+=============== Jan 31, 2018 (CST) ===============
+18:15:49.597453 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+18:15:49.597969 version@stat F·[2] S·760B[760B] Sc·[0.50]
+18:15:49.598012 db@open opening
+18:15:49.598095 journal@recovery F·1
+18:15:49.598672 journal@recovery recovering @6
+18:15:49.599318 memdb@flush created L0@8 N·2 S·355B "\x00\b\xb5.. \xa4n,v9":"amy..ain,v10"
+18:15:49.599790 version@stat F·[3] S·1KiB[1KiB] Sc·[0.75]
+18:15:49.600778 db@janitor F·5 G·0
+18:15:49.600819 db@open done T·2.786174ms
+18:15:49.611451 db@close closing
+18:15:49.612339 db@close done T·879.871µs
+=============== Jan 31, 2018 (CST) ===============
+18:15:53.145580 log@legend F·NumFile S·FileSize N·Entry C·BadEntry B·BadBlock Ke·KeyError D·DroppedEntry L·Level Q·SeqNum T·TimeElapsed
+18:15:53.146057 version@stat F·[3] S·1KiB[1KiB] Sc·[0.75]
+18:15:53.146095 db@open opening
+18:15:53.146175 journal@recovery F·1
+18:15:53.146694 journal@recovery recovering @9
+18:15:53.147516 memdb@flush created L0@11 N·2 S·355B "\x00\x04\x13..\u06dd6,v12":"amy..ain,v13"
+18:15:53.148011 version@stat F·[4] S·1KiB[1KiB] Sc·[1.00]
+18:15:53.149082 db@janitor F·6 G·0
+18:15:53.149138 db@open done T·3.010367ms
+18:15:53.149252 table@compaction L0·4 -> L1·0 S·1KiB Q·14
+18:15:53.150138 table@build created L1@14 N·6 S·601B "\x00\x04\x13..\u06dd6,v12":"amy..ain,v13"
+18:15:53.150419 table@commit exiting
+18:15:53.150224 db@close closing
+18:15:53.150795 db@close done T·567.433µs

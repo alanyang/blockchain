@@ -1,80 +1,96 @@
 package core
 
 import (
-	"github.com/boltdb/bolt"
 	"strings"
+
+	"github.com/syndtr/goleveldb/leveldb"
 )
 
 const (
-	DB_PATH = "./db/___cb.db"
+	dbPath = "./db/blockchain"
 )
 
 var (
-	CHAIN_BLOCK = []byte("amy-chain")
-	LAST_TIP    = []byte{0x03, 0x00}
+	bucketChainBlock = []byte("amy-chain")
+	bucketLastTip    = []byte{0x03, 0x00}
 )
 
 type (
+	//Chain ...
 	Chain struct {
-		Tip []byte
-		DB  *bolt.DB
+		last []byte
+		db   *leveldb.DB
 	}
 
+	//ChainIterator ...
 	ChainIterator struct {
 		c  *Chain
 		it []byte
 	}
 )
 
+//NewBlockChain ...
 func NewBlockChain() (*Chain, error) {
-	last := []byte{}
-	db, err := bolt.Open(DB_PATH, 0600, nil)
+	db, err := leveldb.OpenFile(dbPath, nil)
 	if err != nil {
 		return nil, err
 	}
-	err = db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket(CHAIN_BLOCK)
-		if b == nil {
-			g := newGenesisBlock()
-			b, _ := tx.CreateBucket(CHAIN_BLOCK)
-			b.Put(g.Hash, g.Serialize())
-			b.Put(LAST_TIP, g.Hash)
-			last = g.Hash
-		} else {
-			last = b.Get(LAST_TIP)
-		}
-		return nil
-	})
-	return &Chain{last, db}, nil
+	chain := &Chain{db: db}
+	last := chain.getLastTip()
 
+	if last == nil {
+		g := newGenesisBlock()
+		chain.storeBlock(g)
+		last = g.Hash
+	}
+
+	chain.last = last
+
+	return chain, nil
+}
+
+func (c *Chain) getLastTip() (tip []byte) {
+	tip, _ = c.db.Get(bucketChainBlock, nil)
+	return
+}
+
+func (c *Chain) getLastBlock() (b *Block) {
+	t := c.getLastTip()
+	d, _ := c.db.Get(t, nil)
+	return Unserialize(d)
+}
+
+func (c *Chain) getBlock(hash []byte) (b *Block) {
+	d, _ := c.db.Get(hash, nil)
+	b = Unserialize(d)
+	return
+}
+
+func (c *Chain) storeBlock(b *Block) {
+	c.db.Put(b.Hash, b.Serialize(), nil)
+	c.db.Put(bucketChainBlock, b.Hash, nil)
 }
 
 func (c *Chain) AddBlock(b *Block) *Block {
-	last := []byte{}
+	last := c.getLastTip()
 
-	c.DB.View(func(tx *bolt.Tx) error {
-		bt := tx.Bucket(CHAIN_BLOCK)
-		last = bt.Get(LAST_TIP)
-		return nil
-	})
 	b.PreHash = last
 	pow := NewProofOfWork(b)
 	nonce, hash := pow.run()
 
 	b.Hash = hash[:]
 	b.Nonce = nonce
-	c.Tip = b.Hash
+	c.last = b.Hash
 
-	c.DB.Update(func(tx *bolt.Tx) error {
-		bt := tx.Bucket(CHAIN_BLOCK)
-		bt.Put(b.Hash, b.Serialize())
-		bt.Put(LAST_TIP, c.Tip)
-		return nil
-	})
-
+	c.storeBlock(b)
 	return b
 }
 
+func (c *Chain) Close() {
+	c.db.Close()
+}
+
+//Iterator ...
 func (c *Chain) Iterator() *ChainIterator {
 	return NewChainIterator(c)
 }
@@ -87,24 +103,19 @@ func (c *Chain) String() string {
 		if b == nil {
 			break
 		}
-		s = append(s, b.String(), "👆")
+		s = append(s, b.String(), "*")
 	}
 	return strings.Join(s, "\n")
 }
 
+//NewChainIterator ...
 func NewChainIterator(c *Chain) *ChainIterator {
-	return &ChainIterator{c, c.Tip}
+	return &ChainIterator{c, c.last}
 }
 
+//Next ...
 func (ci *ChainIterator) Next() (b *Block) {
-	ci.c.DB.View(func(tx *bolt.Tx) error {
-		bt := tx.Bucket(CHAIN_BLOCK)
-		bl := bt.Get(ci.it)
-		if bl != nil {
-			b = Unserialize(bl)
-		}
-		return nil
-	})
+	b = ci.c.getBlock(ci.it)
 	if b != nil {
 		ci.it = b.PreHash
 	}

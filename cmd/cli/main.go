@@ -1,11 +1,12 @@
 package main
 
 import (
-	"blockchain/core"
 	"flag"
 	"fmt"
 	"log"
 	"os"
+
+	"github.com/alanyang/blockchain/core"
 )
 
 func main() {
@@ -13,7 +14,7 @@ func main() {
 	addChainCmd := flag.NewFlagSet("add", flag.ExitOnError)
 	eachChainCmd := flag.NewFlagSet("each", flag.ExitOnError)
 
-	addChainData := addChainCmd.String("name", "", "block name")
+	addChainData := addChainCmd.String("data", "", "block data")
 
 	if len(os.Args) < 2 {
 		os.Exit(0)
@@ -32,7 +33,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer c.DB.Close()
+	defer c.Close()
 
 	if addChainCmd.Parsed() {
 		fmt.Println(c.AddBlock(core.NewBlock(*addChainData)))
