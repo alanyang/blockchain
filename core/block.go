@@ -10,37 +10,43 @@ import (
 )
 
 type (
-	Trans struct {
-	}
 	Block struct {
-		Timestamp     int64
-		PreHash       []byte
-		Data          []byte
-		Hash          []byte
-		Nonce         uint64
-		Transtication []*Trans
+		//创建时间戳
+		Timestamp int64
+		//前一个块的Hash
+		PrevHash []byte
+		//交易数据
+		Transactions []*Transaction
+		//自己的Hash
+		Hash []byte
+		//随机数
+		Nonce uint64
 	}
 )
 
 func (b *Block) hash() {
 	timestamp := []byte(strconv.FormatInt(b.Timestamp, 10))
-	header := bytes.Join([][]byte{timestamp, b.PreHash, b.Data}, []byte{})
+	header := bytes.Join([][]byte{timestamp, b.PrevHash, b.hashTransations()}, []byte{})
 
 	h := sha256.Sum256(header)
 	b.Hash = h[:]
 }
 
-func NewBlock(data string) *Block {
+func NewBlock(prevHash []byte, txs []*Transaction) *Block {
 	b := &Block{
-		Timestamp: time.Now().Unix(),
-		Data:      []byte(data),
+		PrevHash:     prevHash,
+		Timestamp:    time.Now().Unix(),
+		Transactions: txs,
 	}
-	b.hash()
+	pow := NewProofOfWork(b)
+	nonce, hash := pow.run()
+	b.Hash = hash
+	b.Nonce = nonce
 	return b
 }
 
 func newGenesisBlock() *Block {
-	return NewBlock("Genesis block")
+	return NewBlock([]byte{}, []*Transaction{NewCoinbaseTransaction("1Aw2Nd6igX3qK9s2SGx7gAZLsmsHLwf79W", "")})
 }
 
 func (b *Block) HashString() string {
@@ -48,7 +54,7 @@ func (b *Block) HashString() string {
 }
 
 func (b *Block) String() string {
-	return fmt.Sprintf("Prev: %X\nData: %s\nHash: %X", b.PreHash, string(b.Data), b.Hash)
+	return fmt.Sprintf("Prev: %X\nHash: %X", b.PrevHash, b.Hash)
 }
 
 func (b *Block) Serialize() []byte {
@@ -59,6 +65,15 @@ func (b *Block) Serialize() []byte {
 		return nil
 	}
 	return w.Bytes()
+}
+
+func (b *Block) hashTransations() []byte {
+	ids := [][]byte{}
+	for _, tx := range b.Transactions {
+		ids = append(ids, tx.ID)
+	}
+	hash := sha256.Sum256(bytes.Join(ids, []byte{}))
+	return hash[:]
 }
 
 func Unserialize(d []byte) *Block {

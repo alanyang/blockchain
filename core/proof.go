@@ -27,7 +27,7 @@ func (p *ProofOfWork) prepare(nonce uint64) []byte {
 	binary.Write(ts, binary.BigEndian, int32(nonce))
 
 	return bytes.Join([][]byte{
-		p.b.Data, p.b.PreHash, ts.Bytes(), []byte{targetBits},
+		p.b.hashTransations(), p.b.PrevHash, ts.Bytes(), []byte{targetBits},
 	}, []byte{})
 }
 
@@ -46,7 +46,7 @@ func (p *ProofOfWork) run() (uint64, []byte) {
 	}
 }
 
-func (p *ProofOfWork) IsValid() bool {
+func (p *ProofOfWork) Verify() bool {
 	var (
 		hashInt      big.Int
 		givenHashInt big.Int

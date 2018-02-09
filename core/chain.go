@@ -1,6 +1,7 @@
 package core
 
 import (
+	"encoding/hex"
 	"strings"
 
 	"github.com/syndtr/goleveldb/leveldb"
@@ -18,7 +19,7 @@ var (
 type (
 	//Chain ...
 	Chain struct {
-		last []byte
+		Last []byte
 		db   *leveldb.DB
 	}
 
@@ -44,7 +45,7 @@ func NewBlockChain() (*Chain, error) {
 		last = g.Hash
 	}
 
-	chain.last = last
+	chain.Last = last
 
 	return chain, nil
 }
@@ -71,19 +72,13 @@ func (c *Chain) storeBlock(b *Block) {
 	c.db.Put(bucketChainBlock, b.Hash, nil)
 }
 
-func (c *Chain) AddBlock(b *Block) *Block {
-	last := c.getLastTip()
-
-	b.PreHash = last
+func (c *Chain) AddBlock(b *Block) (*Block, bool) {
 	pow := NewProofOfWork(b)
-	nonce, hash := pow.run()
-
-	b.Hash = hash[:]
-	b.Nonce = nonce
-	c.last = b.Hash
-
-	c.storeBlock(b)
-	return b
+	valid := pow.Verify()
+	if valid {
+		c.storeBlock(b)
+	}
+	return b, valid
 }
 
 func (c *Chain) Close() {
@@ -108,16 +103,78 @@ func (c *Chain) String() string {
 	return strings.Join(s, "\n")
 }
 
+func (c *Chain) FindUnspentTransactions(address string) (txs []*Transaction) {
+	spentTx := make(map[string][]int)
+	pubKey := PubkeyFromAddress(address)
+	it := c.Iterator()
+	for {
+		block := it.Next()
+		if block == nil {
+			break
+		}
+
+		for _, tx := range block.Transactions {
+			txID := hex.EncodeToString(tx.ID)
+
+		OutPut:
+			for outputIndex, output := range tx.Output {
+				_, ok := spentTx[txID]
+				if ok {
+					for _, spentOut := range spentTx[txID] {
+						if spentOut == outputIndex {
+							continue OutPut
+						}
+					}
+				}
+
+				if output.IsLockedWithKey(pubKey) {
+					txs = append(txs, tx)
+				}
+			}
+
+			if !tx.IsCoinbase() {
+				for inputIndex, input := range tx.Input {
+					if input.UsesKey(pubKey) {
+						inputID := hex.EncodeToString(input.ID)
+						spentTx[inputID] = append(spentTx[inputID], inputIndex)
+					}
+				}
+			}
+		}
+	}
+	return
+}
+
+func (c *Chain) FindUTXO(address string) (utxo []*TransactionOutput) {
+	txs := c.FindUnspentTransactions(address)
+	for _, tx := range txs {
+		for _, txo := range tx.Output {
+			if txo.IsLockedWithKey(PubkeyFromAddress(address)) {
+				utxo = append(utxo, txo)
+			}
+		}
+	}
+	return
+}
+
+func (c *Chain) GetBalance(address string) (b int) {
+	utxo := c.FindUTXO(address)
+	for _, txo := range utxo {
+		b += txo.Value
+	}
+	return
+}
+
 //NewChainIterator ...
 func NewChainIterator(c *Chain) *ChainIterator {
-	return &ChainIterator{c, c.last}
+	return &ChainIterator{c, c.Last}
 }
 
 //Next ...
 func (ci *ChainIterator) Next() (b *Block) {
 	b = ci.c.getBlock(ci.it)
 	if b != nil {
-		ci.it = b.PreHash
+		ci.it = b.PrevHash
 	}
 	return
 }

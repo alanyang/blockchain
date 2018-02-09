@@ -5,9 +5,11 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
+	"fmt"
+	"math/big"
+
 	base58 "github.com/jbenet/go-base58"
 	"golang.org/x/crypto/ripemd160"
-	"math/big"
 )
 
 var (
@@ -18,13 +20,14 @@ var (
 type (
 	Wallet struct {
 		PrivateKey *ecdsa.PrivateKey
-		PublicKey  []byte
+		PublicKey  PublicKey
 	}
 
-	Address []byte
+	Address   []byte
+	PublicKey = []byte
 )
 
-func newKeyPair() (*ecdsa.PrivateKey, []byte) {
+func newKeyPair() (*ecdsa.PrivateKey, PublicKey) {
 	el := elliptic.P256()
 	pKey, _ := ecdsa.GenerateKey(el, rand.Reader)
 	return pKey, append(pKey.PublicKey.X.Bytes(), pKey.PublicKey.Y.Bytes()...)
@@ -51,17 +54,21 @@ func FromPrivateKeyString(s string) *Wallet {
 }
 
 func (w *Wallet) Address() Address {
-	hash := w.hashPubkey()
+	hash := HashPubkey(w.PublicKey)
 	versionHash := append(addressVersion, hash...)
 	sum := CheckSum(versionHash)
 	return Address(append(versionHash, sum...)[:])
 }
 
-func (w *Wallet) hashPubkey() []byte {
-	hash := sha256.Sum256(w.PublicKey)
+func HashPubkey(publicKey []byte) []byte {
+	hash := sha256.Sum256(publicKey)
 	ripemdHash := ripemd160.New()
 	ripemdHash.Write(hash[:])
 	return ripemdHash.Sum(nil)
+}
+
+func (w *Wallet) String() string {
+	return fmt.Sprintf("PrivateKey: %X[Very important!]\nPublicKey:  %X\nAddress:    %s\n", w.PrivateKey.D.Bytes(), w.PublicKey, w.Address().String())
 }
 
 func CheckSum(b []byte) []byte {
@@ -72,4 +79,13 @@ func CheckSum(b []byte) []byte {
 
 func (a Address) String() string {
 	return base58.Encode([]byte(a))
+}
+
+func (a Address) Bytes() []byte {
+	return []byte(a)
+}
+
+func PubkeyFromAddress(addr string) []byte {
+	b := base58.Decode(addr)
+	return b[1 : len(b)-4]
 }
