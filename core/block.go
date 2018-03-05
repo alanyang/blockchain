@@ -40,8 +40,8 @@ func NewBlock(prevHash []byte, txs []*Transaction) *Block {
 		Timestamp:    time.Now().Unix(),
 		Transactions: txs,
 	}
-	pow := NewProofOfWork(b)
-	nonce, hash := pow.run()
+	pow := NewProofOfWork(b, PrimeConsensus)
+	nonce, hash := pow.Consensus()
 	b.Hash = hash
 	b.Nonce = nonce
 	return b

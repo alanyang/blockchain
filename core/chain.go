@@ -73,7 +73,7 @@ func (c *Chain) storeBlock(b *Block) {
 }
 
 func (c *Chain) AddBlock(b *Block) (*Block, bool) {
-	pow := NewProofOfWork(b)
+	pow := NewProofOfWork(b, PrimeConsensus)
 	valid := pow.Verify()
 	if valid {
 		c.storeBlock(b)

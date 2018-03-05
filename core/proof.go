@@ -3,22 +3,29 @@ package core
 import (
 	"bytes"
 	"encoding/binary"
+	"log"
 	"math/big"
 )
 
 const targetBits = 12
 
+const (
+	TraditionConsensus = iota
+	PrimeConsensus
+)
+
 //ProofOfWork ...
 type ProofOfWork struct {
-	b      *Block
-	target *big.Int
-	hasher Hasher
+	b         *Block
+	target    *big.Int
+	hasher    Hasher
+	consensus int
 }
 
-func NewProofOfWork(b *Block) *ProofOfWork {
+func NewProofOfWork(b *Block, t int) *ProofOfWork {
 	target := big.NewInt(int64(1))
 	target.Lsh(target, uint(256-targetBits))
-	return &ProofOfWork{b, target, NewScryptHasher()}
+	return &ProofOfWork{b: b, target: target, hasher: NewScryptHasher(), consensus: t}
 }
 
 func (p *ProofOfWork) prepare(nonce uint64) []byte {
@@ -31,7 +38,7 @@ func (p *ProofOfWork) prepare(nonce uint64) []byte {
 	}, []byte{})
 }
 
-func (p *ProofOfWork) run() (uint64, []byte) {
+func (p *ProofOfWork) bitConsensus() (uint64, []byte) {
 	var nonce uint64 = 0
 	var hashInt big.Int
 
@@ -46,7 +53,24 @@ func (p *ProofOfWork) run() (uint64, []byte) {
 	}
 }
 
-func (p *ProofOfWork) Verify() bool {
+func (p *ProofOfWork) primeConsensus() (uint64, []byte) {
+	var (
+		nonce   uint64 = 0
+		hashInt big.Int
+	)
+
+	for {
+		hash := p.hasher.Sum(p.prepare(nonce))
+		hashInt.SetBytes(hash[:])
+
+		if hashInt.ProbablyPrime(0) {
+			return nonce, hash[:]
+		}
+		nonce++
+	}
+}
+
+func (p *ProofOfWork) verifyBitConsensus() bool {
 	var (
 		hashInt      big.Int
 		givenHashInt big.Int
@@ -56,4 +80,43 @@ func (p *ProofOfWork) Verify() bool {
 	givenHashInt.SetBytes(p.b.Hash)
 
 	return givenHashInt.Cmp(&hashInt) == 0
+}
+
+func (p *ProofOfWork) verifyPrimeConsensus() bool {
+	var (
+		hashInt      big.Int
+		givenHashInt big.Int
+	)
+	hash := p.hasher.Sum(p.prepare(p.b.Nonce))
+	hashInt.SetBytes(hash[:])
+	givenHashInt.SetBytes(p.b.Hash)
+
+	return givenHashInt.ProbablyPrime(0)
+}
+
+func (p *ProofOfWork) Consensus() (uint64, []byte) {
+	if p.consensus == TraditionConsensus {
+		return p.bitConsensus()
+	} else if p.consensus == PrimeConsensus {
+		return p.primeConsensus()
+	} else {
+		log.Fatal("Unsupport consensus")
+	}
+	return 0, nil
+}
+
+func (p *ProofOfWork) Verify() bool {
+	if p.consensus == TraditionConsensus {
+		return p.verifyBitConsensus()
+	} else if p.consensus == PrimeConsensus {
+		return p.verifyPrimeConsensus()
+	} else {
+		log.Fatal("Unsuuprt verify")
+	}
+	return false
+}
+
+//todo big.Int.ProbablyPrime is unsafe when x > (2 << 64)
+func isPrime(a *big.Int) bool {
+	return false
 }
