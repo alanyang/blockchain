@@ -2,7 +2,6 @@ package core
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"encoding/binary"
 	"math/big"
 )
@@ -13,12 +12,13 @@ const targetBits = 12
 type ProofOfWork struct {
 	b      *Block
 	target *big.Int
+	hasher Hasher
 }
 
 func NewProofOfWork(b *Block) *ProofOfWork {
 	target := big.NewInt(int64(1))
 	target.Lsh(target, uint(256-targetBits))
-	return &ProofOfWork{b, target}
+	return &ProofOfWork{b, target, NewScryptHasher()}
 }
 
 func (p *ProofOfWork) prepare(nonce uint64) []byte {
@@ -36,7 +36,7 @@ func (p *ProofOfWork) run() (uint64, []byte) {
 	var hashInt big.Int
 
 	for {
-		hash := sha256.Sum256(p.prepare(nonce))
+		hash := p.hasher.Sum(p.prepare(nonce))
 		hashInt.SetBytes(hash[:])
 
 		if hashInt.Cmp(p.target) == -1 {
@@ -51,7 +51,7 @@ func (p *ProofOfWork) Verify() bool {
 		hashInt      big.Int
 		givenHashInt big.Int
 	)
-	hash := sha256.Sum256(p.prepare(p.b.Nonce))
+	hash := p.hasher.Sum(p.prepare(p.b.Nonce))
 	hashInt.SetBytes(hash[:])
 	givenHashInt.SetBytes(p.b.Hash)
 

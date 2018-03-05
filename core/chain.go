@@ -105,7 +105,7 @@ func (c *Chain) String() string {
 
 func (c *Chain) FindUnspentTransactions(address string) (txs []*Transaction) {
 	spentTx := make(map[string][]int)
-	pubKey := PubkeyFromAddress(address)
+	pubKey := PubKeyHashFromAddress(address)
 	it := c.Iterator()
 	for {
 		block := it.Next()
@@ -149,7 +149,7 @@ func (c *Chain) FindUTXO(address string) (utxo []*TransactionOutput) {
 	txs := c.FindUnspentTransactions(address)
 	for _, tx := range txs {
 		for _, txo := range tx.Output {
-			if txo.IsLockedWithKey(PubkeyFromAddress(address)) {
+			if txo.IsLockedWithKey(PubKeyHashFromAddress(address)) {
 				utxo = append(utxo, txo)
 			}
 		}

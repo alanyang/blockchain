@@ -35,8 +35,8 @@ type (
 		//prev index of transations
 		Index int
 		//owner sign
-		Sign      []byte
-		PublicKey PublicKey
+		Sign   []byte
+		PubKey PublicKey
 	}
 
 	//TransationOutput struct
@@ -49,7 +49,7 @@ type (
 )
 
 func (tx *Transaction) IsCoinbase() bool {
-	return tx.Input[0].Index == -1 && bytes.Compare(tx.Input[0].PublicKey, []byte{}) == 0 && len(tx.Input[0].ID) == 0
+	return tx.Input[0].Index == -1 && bytes.Compare(tx.Input[0].PubKey, []byte{}) == 0 && len(tx.Input[0].ID) == 0
 }
 
 func (tx *Transaction) TrimmedCopy() *Transaction {
@@ -76,9 +76,9 @@ func (tx *Transaction) Sign(privateKey *ecdsa.PrivateKey, prevTxs map[string]*Tr
 	for i, txi := range txCopy.Input {
 		prevTx := prevTxs[hex.EncodeToString(txi.ID)]
 		txCopy.Input[i].Sign = nil
-		txCopy.Input[i].PublicKey = prevTx.Output[txi.Index].PubKeyHash
+		txCopy.Input[i].PubKey = prevTx.Output[txi.Index].PubKeyHash
 		txCopy.ID = txCopy.Hash()
-		txCopy.Input[i].PublicKey = nil
+		txCopy.Input[i].PubKey = nil
 
 		r, s, err := ecdsa.Sign(rand.Reader, privateKey, txCopy.ID)
 		if err != nil {
@@ -97,9 +97,9 @@ func (tx *Transaction) Verify(prevTxs map[string]*Transaction) bool {
 	for i, txi := range txCopy.Input {
 		prevTx := prevTxs[hex.EncodeToString(txi.ID)]
 		txCopy.Input[i].Sign = nil
-		txCopy.Input[i].PublicKey = prevTx.Output[txi.Index].PubKeyHash
+		txCopy.Input[i].PubKey = prevTx.Output[txi.Index].PubKeyHash
 		txCopy.ID = txCopy.Hash()
-		txCopy.Input[i].PublicKey = nil
+		txCopy.Input[i].PubKey = nil
 
 		var r, s, x, y big.Int
 
@@ -107,9 +107,9 @@ func (tx *Transaction) Verify(prevTxs map[string]*Transaction) bool {
 		r.SetBytes(txCopy.Input[i].Sign[:(sigLen / 2)])
 		s.SetBytes(txCopy.Input[i].Sign[(sigLen / 2):])
 
-		keyLen := len(txi.PublicKey)
-		x.SetBytes(txi.PublicKey[:(keyLen / 2)])
-		y.SetBytes(txi.PublicKey[(keyLen / 2):])
+		keyLen := len(txi.PubKey)
+		x.SetBytes(txi.PubKey[:(keyLen / 2)])
+		y.SetBytes(txi.PubKey[(keyLen / 2):])
 
 		raw := ecdsa.PublicKey{Curve: curve, X: &x, Y: &y}
 		if !ecdsa.Verify(&raw, txCopy.ID, &r, &s) {
@@ -152,7 +152,7 @@ func (tx *Transaction) Serialize() []byte {
 }
 
 func (txo *TransactionOutput) Lock(address string) {
-	txo.PubKeyHash = PubkeyFromAddress(address)
+	txo.PubKeyHash = PubKeyHashFromAddress(address)
 }
 
 func (txo *TransactionOutput) IsLockedWithKey(key []byte) bool {
@@ -160,6 +160,6 @@ func (txo *TransactionOutput) IsLockedWithKey(key []byte) bool {
 }
 
 func (txi *TransactionInput) UsesKey(pubKeyHash []byte) bool {
-	lockingHash := HashPubkey(txi.PublicKey)
+	lockingHash := HashPubkey(txi.PubKey)
 	return bytes.Compare(lockingHash, pubKeyHash) == 0
 }

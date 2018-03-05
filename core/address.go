@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"math/big"
+	"strings"
 
 	base58 "github.com/jbenet/go-base58"
 	"golang.org/x/crypto/ripemd160"
@@ -68,7 +69,11 @@ func HashPubkey(publicKey []byte) []byte {
 }
 
 func (w *Wallet) String() string {
-	return fmt.Sprintf("PrivateKey: %X[Very important!]\nPublicKey:  %X\nAddress:    %s\n", w.PrivateKey.D.Bytes(), w.PublicKey, w.Address().String())
+	var builder strings.Builder
+	fmt.Fprintf(&builder, "PrivateKey: %x\n", w.PrivateKey.D.Bytes())
+	fmt.Fprintf(&builder, "PublicKey:  %x\n", w.PublicKey)
+	fmt.Fprintf(&builder, "Address:    %s\n", w.Address().String())
+	return builder.String()
 }
 
 func CheckSum(b []byte) []byte {
@@ -85,7 +90,7 @@ func (a Address) Bytes() []byte {
 	return []byte(a)
 }
 
-func PubkeyFromAddress(addr string) []byte {
+func PubKeyHashFromAddress(addr string) []byte {
 	b := base58.Decode(addr)
 	return b[1 : len(b)-4]
 }

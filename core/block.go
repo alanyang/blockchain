@@ -21,6 +21,8 @@ type (
 		Hash []byte
 		//随机数
 		Nonce uint64
+
+		Merkle []byte
 	}
 )
 
@@ -72,8 +74,11 @@ func (b *Block) hashTransations() []byte {
 	for _, tx := range b.Transactions {
 		ids = append(ids, tx.ID)
 	}
-	hash := sha256.Sum256(bytes.Join(ids, []byte{}))
-	return hash[:]
+
+	tree := NewMerkleTree(ids)
+	b.Merkle = tree.Root.Data
+
+	return b.Merkle
 }
 
 func Unserialize(d []byte) *Block {
