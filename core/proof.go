@@ -26,7 +26,6 @@ type ProofOfWork struct {
 	consensus int
 }
 
-// H(H(prevBlock) + t + A)
 type ProofOfStake struct {
 	pb      *Block
 	account *Account
@@ -145,15 +144,13 @@ func isPrime(a *big.Int) bool {
 	return false
 }
 
-// H(H(prevBlock) + t + A) <= balance(A) * M
+// H(H(pb) + t + A) <= balance(A) * M
 func (pos *ProofOfStake) Consensus(ch chan *PosResult) {
 	pbh := pos.hasher.Sum(pos.pb.Hash)
 	var (
 		target  big.Int
 		hashInt big.Int
 	)
-
-	defer close(ch)
 
 	for i := 0; i < posMaxCount; i++ {
 		ts := time.Now().Unix()
@@ -166,8 +163,7 @@ func (pos *ProofOfStake) Consensus(ch chan *PosResult) {
 
 		target.Mul(big.NewInt(pos.account.Balance), big.NewInt(targetBits))
 
-		r := hashInt.Cmp(&target)
-		if r >= 0 {
+		if hashInt.Cmp(&target) >= 0 {
 			ch <- &PosResult{
 				pb:        pos.pb,
 				account:   pos.account,
@@ -177,4 +173,6 @@ func (pos *ProofOfStake) Consensus(ch chan *PosResult) {
 		}
 		time.Sleep(time.Second)
 	}
+
+	ch <- nil
 }
