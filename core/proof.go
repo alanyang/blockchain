@@ -5,9 +5,13 @@ import (
 	"encoding/binary"
 	"log"
 	"math/big"
+	"time"
 )
 
-const targetBits = 12
+const (
+	targetBits  = 12
+	posMaxCount = 7200
+)
 
 const (
 	TraditionConsensus = iota
@@ -22,10 +26,27 @@ type ProofOfWork struct {
 	consensus int
 }
 
+// H(H(prevBlock) + t + A)
+type ProofOfStake struct {
+	pb      *Block
+	account *Account
+	hasher  Hasher
+}
+
+type PosResult struct {
+	pb        *Block
+	account   *Account
+	timestamp int64
+}
+
 func NewProofOfWork(b *Block, t int) *ProofOfWork {
 	target := big.NewInt(int64(1))
 	target.Lsh(target, uint(256-targetBits))
 	return &ProofOfWork{b: b, target: target, hasher: NewScryptHasher(), consensus: t}
+}
+
+func NewProofOfStake(pb *Block, account *Account) *ProofOfStake {
+	return &ProofOfStake{pb: pb, account: account, hasher: NewSha256Hasher()}
 }
 
 func (p *ProofOfWork) prepare(nonce uint64) []byte {
@@ -70,6 +91,7 @@ func (p *ProofOfWork) primeConsensus() (uint64, []byte) {
 	}
 }
 
+//H(b) <= M
 func (p *ProofOfWork) verifyBitConsensus() bool {
 	var (
 		hashInt      big.Int
@@ -82,6 +104,7 @@ func (p *ProofOfWork) verifyBitConsensus() bool {
 	return givenHashInt.Cmp(&hashInt) == 0
 }
 
+//P(H(b)) ?
 func (p *ProofOfWork) verifyPrimeConsensus() bool {
 	var (
 		hashInt      big.Int
@@ -116,7 +139,42 @@ func (p *ProofOfWork) Verify() bool {
 	return false
 }
 
-//todo big.Int.ProbablyPrime is unsafe when x > (2 << 64)
+//todo
+//big.Int.ProbablyPrime is unsafe when x > (2 << 64)
 func isPrime(a *big.Int) bool {
 	return false
+}
+
+// H(H(prevBlock) + t + A) <= balance(A) * M
+func (pos *ProofOfStake) Consensus(ch chan *PosResult) {
+	pbh := pos.hasher.Sum(pos.pb.Hash)
+	var (
+		target  big.Int
+		hashInt big.Int
+	)
+
+	defer close(ch)
+
+	for i := 0; i < posMaxCount; i++ {
+		ts := time.Now().Unix()
+		buf := new(bytes.Buffer)
+		binary.Write(buf, binary.BigEndian, &ts)
+		d := append(pbh, bytes.Join([][]byte{pos.account.Hash(), buf.Bytes()}, []byte{})...)
+
+		hash := pos.hasher.Sum(d)
+		hashInt.SetBytes(hash)
+
+		target.Mul(big.NewInt(pos.account.Balance), big.NewInt(targetBits))
+
+		r := hashInt.Cmp(&target)
+		if r >= 0 {
+			ch <- &PosResult{
+				pb:        pos.pb,
+				account:   pos.account,
+				timestamp: ts,
+			}
+			return
+		}
+		time.Sleep(time.Second)
+	}
 }
